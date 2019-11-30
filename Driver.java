@@ -4,17 +4,23 @@ import java.io.InputStreamReader;
 
 public class Driver {
 
+	//Instance variables
 	private static int numTakeoffs = 0;
+	//Reduce search time complexity to log2n
 	private static ListArrayBasedPlus<Runway> takeOffOrderedRunways = new ListArrayBasedPlus<>();
 	private static ListArrayBasedPlus<Runway> nameOrderedRunways = new ListArrayBasedPlus<>();
 	private static BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+	//Reduce search times of waiting planes to log2n
 	private static ListArrayBased<Runway> waitingRunways = new ListArrayBasedPlus<>();
 	private static ListArrayBased<Plane> waitingPlanes = new ListArrayBasedPlus<>();
+	//Keep track of the next runway to take off
 	private static int nextTakeoffRunway = 0;
 	public static void main(String[] args) throws NumberFormatException, IOException 
 	{
+		//Get the runways
 		System.out.println("Enter number of runways: ");
 		int numRunways = Integer.parseInt(br.readLine());
+		
 		for(int i = 1; i <= numRunways; i++)
 		{
 			System.out.println("Enter the name of runway number: " + i + ":");
@@ -22,6 +28,7 @@ public class Driver {
 			int size = takeOffOrderedRunways.size();
 			Runway runwayToAdd = new Runway(name, size);
 			try {
+				//Insert a runway binarily to the list, add it to the end of the takeoff order
 				insertBinarily(runwayToAdd);
 				takeOffOrderedRunways.add(size, runwayToAdd);
 			} catch (AlreadyExistsException e) {
@@ -52,15 +59,18 @@ public class Driver {
 			case 1: 
 				try
 				{
+					
 					System.out.println("Enter flight number:");
 					String fn = br.readLine();
 					System.out.println("Enter destination:");
 					String d = br.readLine();
 					boolean choseRunway = false;
 					Runway myRunway = null;
+					//While runway entered is not valid, loop an ask for input
 					while(!choseRunway)
 					{
 						System.out.println("Enter runway:");
+						//Binarily search for the runway
 						Runway myR = findBinarily(br.readLine());
 						if(myR == null) System.out.println("No such runway!");
 						else
@@ -69,8 +79,10 @@ public class Driver {
 							myRunway = myR;
 						}
 					}
+					//Create a plane with the flight number and destination
 					Plane myP = new Plane(fn, d);
-					myRunway.addReadyFlight(myP);
+					//get the binary flight's takeoff order and update the runway in that list
+					takeOffOrderedRunways.get(myRunway.getRunwayNumber()).addReadyFlight(myP);
 					System.out.println("Flight " + myP.getFlightNumber() + " ready for takeoff on runway " + myRunway.getRunwayName());
 				}catch(AlreadyExistsException a)
 				{
@@ -78,14 +90,17 @@ public class Driver {
 				}
 				break;
 			case 2: 
+				
 				boolean doneSearching = false;
 				int size = takeOffOrderedRunways.size();
 				int i = nextTakeoffRunway;
 				int j = 0;
 				while(!doneSearching && j < size)
 				{
+					//get the runway to takeoff.
 					Runway currRunway = takeOffOrderedRunways.get(i%size);
 					Plane takeOffPlane = currRunway.takeOff();
+					//If plane exists, ask for the input, if not, move onto the next runway.
 					if( takeOffPlane != null)
 					{
 						System.out.println("Is flight " + takeOffPlane.getFlightNumber() + " cleared for takeoff(Y/N): ");
@@ -111,16 +126,19 @@ public class Driver {
 				}
 				break;
 			case 3: 
+				
 				if(waitingPlanes.size() == 0) System.out.println("There are no planes waiting for clearance!");
 				else
 				{
+					//Look for planes until you find the one in the list of waiting. Not sure if this part works. 
 					System.out.println("Enter flight number");
 					String flightNum = br.readLine();
 					Object[] o = findPlaneBinarily(flightNum);
-					Plane p = (Plane)o[0]; //method
+					Plane p = (Plane)o[0]; //method returns an object array, 0 is for the plane returned, 1 is for the runway it found. 
 					Runway r = (Runway)o[1];
 					if(p != null)
 					{
+						//Print and add that plane to the respective runway. The method removes both the plane and runway from the waiting list
 						System.out.println("Flight " + p.getFlightNumber() + " is now wating for takeoff on runway " +  r.getRunwayName());
 						Runway newRunway= takeOffOrderedRunways.get(findBinarily(r.getRunwayName()).getRunwayNumber());
 						newRunway.addReadyFlight(p);
@@ -131,6 +149,7 @@ public class Driver {
 				boolean found = false;
 				while(!found)
 				{
+					//add an new runway to both lists
 					System.out.println("Enter the name of the new runway: ");
 					String input = br.readLine();
 					Runway foundRunway = findBinarily(input);
@@ -152,38 +171,47 @@ public class Driver {
 					}
 				}
 				break;
+			//TODO: When a runway is removed, its Runway must also be removed in all instances for waiting planes as well. The waiting runway collection is not sorted, however, the planes collection is sorted. 
 			case 5: 
+				
 				boolean foundClosedRunway = false;
 				String foundRunway = "";
 				Runway foundRunwayObject = null;
+				//While the user enters a nonvalid runway
 				while(!foundClosedRunway)
 				{
+					//Attempt to search for the runway
 					System.out.println("Enter runway: ");
 					foundRunway = br.readLine();
 					foundRunwayObject = findBinarily(foundRunway);
 					if(foundRunwayObject == null) System.out.println("No such runway!");
 					else
 					{
+						//Get the runway object that is kept up to date in the takeOffOrderedRunways collection.
 						foundRunwayObject = takeOffOrderedRunways.get(foundRunwayObject.getRunwayNumber());
 						int it = 0;
 						ListArrayBased<Plane> allReadyFlights = foundRunwayObject.getReadyFlights();
 						int readysize = allReadyFlights.size();
+						//For each plane, enter a cooresponding runway
 						while(it < readysize)
 						{
 							System.out.println("Enter runway: ");
 							String runway = br.readLine();
+							//Do not update the counter and prompt the user again
 							if(runway.compareTo(foundRunway) == 0) System.out.println("This is the runway that is closing!");
 							else
 							{
 								Runway runObj = findBinarily(runway);
+								//Do not update the counter and prompt the user again
 								if(runObj == null) System.out.println("No such runway!");
-								else
+								else //Put plane in the updated collection, increment counter
 								{
 									takeOffOrderedRunways.get(runObj.getRunwayNumber()).addReadyFlight(allReadyFlights.get(it));
 									it++;
 								}
 							}
 						}
+						//Get the index of the runway in its collection
 						int index = findIndexBinarily(foundRunway);
 						if(index >= nameOrderedRunways.size())
 						{
@@ -191,12 +219,17 @@ public class Driver {
 						}
 						else
 						{
+							//Retrieve the plane object and get its flight number
 							int takeOffIndex = nameOrderedRunways.get(index).getRunwayNumber();
+							//Get the next runway number and subtract it by 1.
 							Runway nextRunway = takeOffOrderedRunways.get( takeOffIndex + 1);
+							//Update its runway number in the take off order collection
 							int newRunwayNumber = nextRunway.getRunwayNumber() - 1;
 							nextRunway.setRunwayNumber(newRunwayNumber);
+							//Find the runway in the binary collection and update its runway number
 							int nIndex = findIndexBinarily(nextRunway.getRunwayName());
 							nameOrderedRunways.get(nIndex).setRunwayNumber(newRunwayNumber);
+							//Remove the runways from both the collections (which is why I returned the index this time instead of the actual object itself)
 							takeOffOrderedRunways.remove(takeOffIndex);
 							nameOrderedRunways.remove(index);
 							
@@ -204,6 +237,7 @@ public class Driver {
 					}
 				}
 				break;
+			//Everything from here on out is printing methods. 
 			case 6: 
 				int iterator = nextTakeoffRunway;
 				int sizeTracker = 0;
@@ -245,6 +279,7 @@ public class Driver {
 		
 	}
 	
+	//Insert a runway into the collection binarily
 	private static void insertBinarily(Runway r) throws AlreadyExistsException
 	{
 		int min = 0;
@@ -270,6 +305,7 @@ public class Driver {
 		}
 	}
 	
+	//Find a Runway based on its name, binarily
 	private static Runway findBinarily(String str)
 	{
 		Runway returnRunway = null;
@@ -293,6 +329,7 @@ public class Driver {
 		return returnRunway;
 	}
 	
+	//Return the index of a runway in the name ordered collection by its name.
 	private static int findIndexBinarily(String str)
 	{
 		Runway returnRunway = null;
@@ -315,6 +352,7 @@ public class Driver {
 		return end;
 	}
 	
+	//Find a plane binarily in the list of planes that are waiting. Index 0 of Object[] is the plane object itself, index 1 is the runway object (for printing purposes)
 	private static Object[] findPlaneBinarily(String flightNum)
 	{
 		Object[] returnArr = new Object[2];
@@ -344,6 +382,7 @@ public class Driver {
 		return returnArr;
 	}
 	
+	//Insert a plane and runway binarily into the waiting list
 	private static void insertBinarily(Plane p, Runway r) 
 	{
 		int min = 0;

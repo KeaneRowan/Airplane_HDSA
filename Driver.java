@@ -17,24 +17,11 @@ public class Driver {
 	private static int nextTakeoffRunway = 0;
 	public static void main(String[] args) throws NumberFormatException, IOException 
 	{
-		//Get the runways
-		System.out.println("Enter number of runways: ");
-		int numRunways = Integer.parseInt(br.readLine());
-		
-		for(int i = 1; i <= numRunways; i++)
-		{
-			System.out.println("Enter the name of runway number: " + i + ":");
-			String name = br.readLine();
-			int size = takeOffOrderedRunways.size();
-			Runway runwayToAdd = new Runway(name, size);
-			try {
-				//Insert a runway binarily to the list, add it to the end of the takeoff order
-				insertBinarily(runwayToAdd);
-				takeOffOrderedRunways.add(size, runwayToAdd);
-			} catch (AlreadyExistsException e) {
-				e.getMessage();
-			}
-		}
+		System.out.println("Welcome to the Airport program!");
+
+		//create the original runways
+		getInitRunways();
+
 		System.out.println("Select from the following menu:\r\n" + 
 				"  0. Exit program.\r\n" + 
 				"  1. Plane enters the system.\r\n" + 
@@ -48,237 +35,311 @@ public class Driver {
 		boolean isDone = false;
 		while(!isDone)
 		{
-			System.out.println("Make your menu selection now: ");
+			System.out.print("Make your menu selection now: ");
 			int choice = Integer.parseInt(br.readLine());
-			
+			System.out.println(choice);
 			switch(choice)
 			{
 			case 0: 
 				isDone = true;
+				System.out.println("The Airport is closing :Bye Bye....");
 				break;
 			case 1: 
-				try
-				{
-					
-					System.out.println("Enter flight number:");
-					String fn = br.readLine();
-					System.out.println("Enter destination:");
-					String d = br.readLine();
-					boolean choseRunway = false;
-					Runway myRunway = null;
-					//While runway entered is not valid, loop an ask for input
-					while(!choseRunway)
-					{
-						System.out.println("Enter runway:");
-						//Binarily search for the runway
-						Runway myR = findBinarily(br.readLine());
-						if(myR == null) System.out.println("No such runway!");
-						else
-						{
-							choseRunway = false;
-							myRunway = myR;
-						}
-					}
-					//Create a plane with the flight number and destination
-					Plane myP = new Plane(fn, d);
-					//get the binary flight's takeoff order and update the runway in that list
-					takeOffOrderedRunways.get(myRunway.getRunwayNumber()).addReadyFlight(myP);
-					System.out.println("Flight " + myP.getFlightNumber() + " ready for takeoff on runway " + myRunway.getRunwayName());
-				}catch(AlreadyExistsException a)
-				{
-					System.out.println("Flight number already in use.");
-				}
+				addFlight();
 				break;
 			case 2: 
-				
-				boolean doneSearching = false;
-				int size = takeOffOrderedRunways.size();
-				int i = nextTakeoffRunway;
-				int j = 0;
-				while(!doneSearching && j < size)
-				{
-					//get the runway to takeoff.
-					Runway currRunway = takeOffOrderedRunways.get(i%size);
-					Plane takeOffPlane = currRunway.takeOff();
-					//If plane exists, ask for the input, if not, move onto the next runway.
-					if( takeOffPlane != null)
-					{
-						System.out.println("Is flight " + takeOffPlane.getFlightNumber() + " cleared for takeoff(Y/N): ");
-						if(br.readLine().toLowerCase().trim().compareTo("y") == 0)
-						{
-							System.out.println("Flight " + takeOffPlane.getFlightNumber() + " has now taken off on runway " + currRunway.getRunwayName());
-							nextTakeoffRunway = ++i;
-							numTakeoffs++;
-						}
-						else
-						{
-							System.out.println("Flight " + takeOffPlane.getFlightNumber() + " is now waiting to be allowed to re-enter a runway");
-							nextTakeoffRunway = ++i;
-							insertBinarily(takeOffPlane, currRunway);
-						}
-					}
-					else
-					{
-						i++;
-						j++;
-						nextTakeoffRunway = i;
-					}
-				}
+				takeOff();
 				break;
 			case 3: 
-				
-				if(waitingPlanes.size() == 0) System.out.println("There are no planes waiting for clearance!");
-				else
-				{
-					//Look for planes until you find the one in the list of waiting. Not sure if this part works. 
-					System.out.println("Enter flight number");
-					String flightNum = br.readLine();
-					Object[] o = findPlaneBinarily(flightNum);
-					Plane p = (Plane)o[0]; //method returns an object array, 0 is for the plane returned, 1 is for the runway it found. 
-					Runway r = (Runway)o[1];
-					if(p != null)
-					{
-						//Print and add that plane to the respective runway. The method removes both the plane and runway from the waiting list
-						System.out.println("Flight " + p.getFlightNumber() + " is now wating for takeoff on runway " +  r.getRunwayName());
-						Runway newRunway= takeOffOrderedRunways.get(findBinarily(r.getRunwayName()).getRunwayNumber());
-						newRunway.addReadyFlight(p);
-					}
-				}
+				allowEntrance();
 				break;
 			case 4: 
-				boolean found = false;
-				while(!found)
-				{
-					//add an new runway to both lists
-					System.out.println("Enter the name of the new runway: ");
-					String input = br.readLine();
-					Runway foundRunway = findBinarily(input);
-					if(foundRunway != null)
-					{
-						System.out.println("Runway " + input + " already exists, please choose another name.");
-					}
-					else
-					{
-						System.out.println("Runway " + input + " has opened.");
-						Runway runwayToAdd = new Runway(input, takeOffOrderedRunways.size());
-						try {
-							insertBinarily(runwayToAdd);
-						} catch (AlreadyExistsException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						takeOffOrderedRunways.add(takeOffOrderedRunways.size(), runwayToAdd);
-					}
-				}
+				openNewRunway();
 				break;
-			//TODO: When a runway is removed, its Runway must also be removed in all instances for waiting planes as well. The waiting runway collection is not sorted, however, the planes collection is sorted. 
 			case 5: 
-				
-				boolean foundClosedRunway = false;
-				String foundRunway = "";
-				Runway foundRunwayObject = null;
-				//While the user enters a nonvalid runway
-				while(!foundClosedRunway)
-				{
-					//Attempt to search for the runway
-					System.out.println("Enter runway: ");
-					foundRunway = br.readLine();
-					foundRunwayObject = findBinarily(foundRunway);
-					if(foundRunwayObject == null) System.out.println("No such runway!");
-					else
-					{
-						//Get the runway object that is kept up to date in the takeOffOrderedRunways collection.
-						foundRunwayObject = takeOffOrderedRunways.get(foundRunwayObject.getRunwayNumber());
-						int it = 0;
-						ListArrayBased<Plane> allReadyFlights = foundRunwayObject.getReadyFlights();
-						int readysize = allReadyFlights.size();
-						//For each plane, enter a cooresponding runway
-						while(it < readysize)
-						{
-							System.out.println("Enter runway: ");
-							String runway = br.readLine();
-							//Do not update the counter and prompt the user again
-							if(runway.compareTo(foundRunway) == 0) System.out.println("This is the runway that is closing!");
-							else
-							{
-								Runway runObj = findBinarily(runway);
-								//Do not update the counter and prompt the user again
-								if(runObj == null) System.out.println("No such runway!");
-								else //Put plane in the updated collection, increment counter
-								{
-									takeOffOrderedRunways.get(runObj.getRunwayNumber()).addReadyFlight(allReadyFlights.get(it));
-									it++;
-								}
-							}
-						}
-						//Get the index of the runway in its collection
-						int index = findIndexBinarily(foundRunway);
-						if(index >= nameOrderedRunways.size())
-						{
-							//Do nothing
-						}
-						else
-						{
-							//Retrieve the plane object and get its flight number
-							int takeOffIndex = nameOrderedRunways.get(index).getRunwayNumber();
-							//Get the next runway number and subtract it by 1.
-							Runway nextRunway = takeOffOrderedRunways.get( takeOffIndex + 1);
-							//Update its runway number in the take off order collection
-							int newRunwayNumber = nextRunway.getRunwayNumber() - 1;
-							nextRunway.setRunwayNumber(newRunwayNumber);
-							//Find the runway in the binary collection and update its runway number
-							int nIndex = findIndexBinarily(nextRunway.getRunwayName());
-							nameOrderedRunways.get(nIndex).setRunwayNumber(newRunwayNumber);
-							//Remove the runways from both the collections (which is why I returned the index this time instead of the actual object itself)
-							takeOffOrderedRunways.remove(takeOffIndex);
-							nameOrderedRunways.remove(index);
-							
-						}
-					}
-				}
+				closeRunway();
 				break;
-			//Everything from here on out is printing methods. 
 			case 6: 
-				int iterator = nextTakeoffRunway;
-				int sizeTracker = 0;
-				int takeoffSize = takeOffOrderedRunways.size();
-				while(sizeTracker < takeoffSize)
-				{
-					Runway currentRunway = takeOffOrderedRunways.get(iterator % takeoffSize);
-					ListArrayBasedPlus<Plane> readyFlights = currentRunway.getReadyFlights();
-					if(readyFlights.size() == 0) System.out.println("No planes are waiting for takeoff on runway " + currentRunway.getRunwayName());
-					else
-					{
-						System.out.println("These planes are waiting on runway " + currentRunway.getRunwayName());
-					}
-						int flightsSize = readyFlights.size();
-						for(int t = 0; t < flightsSize; t ++)
-						{
-							Plane currFlight = readyFlights.get(t);
-							System.out.println("Flight " + currFlight.getFlightNumber() + " to " + currFlight.getDestination());
-						}
-				}
+				displayReadyPlanes();
 				break;
 			case 7: 
-				int waitingSize = waitingPlanes.size();
-				if(waitingSize == 0) System.out.println("No planes are waiting to be cleared to re-enter a runway!");
-				else
-				{
-					System.out.println("These planes are waiting to be cleared to re-enter a runway:");
-					for(int z = 0; z < waitingSize; z++)
-					{
-						Plane currFlight = waitingPlanes.get(z);
-						System.out.println("Flight " + currFlight.getFlightNumber() + currFlight.getDestination());
-					}
-				}
+				displayWaitingPlanes();
 				break;
 			case 8: 
 				System.out.println(numTakeoffs + " planes have taken off from the airport.");
 			}
+			System.out.println();
 		}
-		
+
 	}
-	
+
+	private static void getInitRunways() throws NumberFormatException, IOException {
+		//Get the runways
+		System.out.print("Enter number of runways: ");
+		int numRunways = Integer.parseInt(br.readLine());
+		System.out.println(numRunways);
+
+		for(int i = 1; i <= numRunways; i++)
+		{
+			System.out.print("Enter the name of runway number " + i + ": ");
+			String name = br.readLine();
+			System.out.println(name);
+			int size = takeOffOrderedRunways.size();
+			Runway runwayToAdd = new Runway(name, size);
+			try {
+				//Insert a runway binarily to the list, add it to the end of the takeoff order
+				insertBinarily(runwayToAdd);
+				takeOffOrderedRunways.add(size, runwayToAdd);
+			} catch (AlreadyExistsException e) {
+				e.getMessage();
+			}
+		}
+	}
+
+	private static void addFlight() throws IOException {
+		try
+		{
+			System.out.print("Enter flight number:");
+			String fn = br.readLine();
+			System.out.println(fn);
+
+			System.out.print("Enter destination:");
+			String d = br.readLine();
+			System.out.println(d);
+			boolean choseRunway = false;
+			Runway myRunway = null;
+			//While runway entered is not valid, loop an ask for input
+			while(!choseRunway)
+			{
+				System.out.print("Enter runway:");
+				//Binarily search for the runway
+				String searchedRunway = br.readLine();
+				System.out.println(searchedRunway);
+				Runway myR = findBinarily(searchedRunway);
+				if(myR == null) System.out.println("No such runway!");
+				else
+				{
+					choseRunway = true;
+					myRunway = myR;
+				}
+			}
+			//Create a plane with the flight number and destination
+			Plane myP = new Plane(fn, d);
+			//get the binary flight's takeoff order and update the runway in that list
+			takeOffOrderedRunways.get(myRunway.getRunwayNumber()).addReadyFlight(myP);
+			System.out.println("Flight " + myP.getFlightNumber() + " ready for takeoff on runway " + myRunway.getRunwayName());
+		}catch(AlreadyExistsException a)
+		{
+			System.out.println("Flight number already in use.");
+		}
+	}
+	private static void takeOff() throws IOException {
+		Plane plane = null;
+		int size = takeOffOrderedRunways.size();
+		Runway currRunway = null;
+
+		for(int i = 0; i < size && plane == null; i++) {
+			currRunway = takeOffOrderedRunways.get(nextTakeoffRunway);
+			plane = currRunway.takeOff();
+			nextTakeoffRunway = (nextTakeoffRunway + 1) % size;
+		}
+		if(plane == null) {
+			System.out.println("No plane on any runway!");
+		}else {
+			System.out.print("Is flight " + plane.getFlightNumber() + " cleared for takeoff(Y/N): ");
+			String confirmation = br.readLine();
+			System.out.println(confirmation);
+
+			if(confirmation.equals("Y")) {
+				System.out.println("Flight " + plane.getFlightNumber() + " has now taken off from runway " + currRunway.getRunwayName());
+				numTakeoffs++;
+			}else {
+				System.out.println("Flight " + plane.getFlightNumber() + " is now waiting to be allowed to re-enter a runway.");
+				insertBinarily(plane, currRunway);
+			}
+		}
+	}
+
+	private static void allowEntrance() throws IOException {
+		if(waitingPlanes.size() == 0) {
+			System.out.println("There are no planes waiting for clearance!");
+		}
+		else
+		{
+			boolean adding = true;
+			while(adding){
+				//Look for planes until you find the one in the list of waiting. Not sure if this part works. 
+				System.out.print("Enter flight number: ");
+				String flightNum = br.readLine();
+				System.out.println(flightNum);
+
+				Object[] o = findPlaneBinarily(flightNum);
+				Plane p = (Plane)o[0]; //method returns an object array, 0 is for the plane returned, 1 is for the runway it found. 
+				Runway r = (Runway)o[1];
+				if(p != null)
+				{
+					//Print and add that plane to the respective runway. The method removes both the plane and runway from the waiting list
+					System.out.println("Flight " + p.getFlightNumber() + " is now wating for takeoff on runway " +  r.getRunwayName());
+					System.out.println(r.getRunwayName());
+					Runway newRunway= takeOffOrderedRunways.get(findBinarily(r.getRunwayName()).getRunwayNumber());
+					newRunway.addReadyFlight(p);
+					adding = false;
+				}else {
+					System.out.println("Flight " + flightNum + " is not waiting for clearance.");
+				}
+			}
+		}
+	}
+
+	private static void openNewRunway() throws IOException {
+		boolean found = false;
+		while(!found)
+		{
+			//add an new runway to both lists
+			System.out.print("Enter the name of the new runway : ");
+			String input = br.readLine();
+			Runway foundRunway = findBinarily(input);
+			if(foundRunway != null)
+			{
+				System.out.println("Runway " + input + " already exists, please choose another name.");
+			}
+			else
+			{
+				System.out.println("Runway " + input + " has opened.");
+				Runway runwayToAdd = new Runway(input, takeOffOrderedRunways.size());
+				try {
+					insertBinarily(runwayToAdd);
+				} catch (AlreadyExistsException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				takeOffOrderedRunways.add(takeOffOrderedRunways.size(), runwayToAdd);
+				found = true;
+			}
+		}
+	}
+
+	private static void closeRunway() throws IOException {
+		boolean removing = true;
+		String foundRunway = "";
+		Runway foundRunwayObject = null;
+
+		while(removing) {
+			System.out.print("Enter runway:");
+			foundRunway = br.readLine();
+			System.out.println(foundRunway);
+
+			foundRunwayObject = findBinarily(foundRunway);
+			if(foundRunwayObject == null) {
+				System.out.println("No such runway!");
+			}else {
+				int it = 0;
+				ListArrayBasedPlus<Plane> allReadyFlights = foundRunwayObject.getReadyFlights();
+
+				int readySize = allReadyFlights.size();
+
+				for(int i = 0; i < readySize; i++) {
+					Plane currPlane = allReadyFlights.get(i);
+					System.out.print("Enter new runway for plane " + currPlane.getFlightNumber() + ":");
+					boolean reAdded = false;
+					while(!reAdded) {
+						String newRunway = br.readLine();
+						System.out.println(newRunway);
+
+						Runway runObj = findBinarily(newRunway);
+						if(newRunway.equals(foundRunway)) {
+							System.out.println("This is the runway that is closing!");
+						}else if(runObj == null) {
+							System.out.println("No such runway!");
+						}else {
+							System.out.println("Flight " + currPlane.getFlightNumber() + " is now waiting for takeoff on runway "+ newRunway+".");
+							takeOffOrderedRunways.get(runObj.getRunwayNumber()).addReadyFlight(currPlane);
+							int max = takeOffOrderedRunways.size();
+							for(int subtracter = foundRunwayObject.getRunwayNumber() + 1; subtracter < max; subtracter++) {
+								takeOffOrderedRunways.get(subtracter).setRunwayNumber(subtracter - 1);
+							}
+							reAdded=true;
+						}
+					}
+
+				} 	
+
+				int waitingSize = waitingRunways.size();
+				for(int i = 0; i < waitingSize; i++) {
+					Runway currRunway = waitingRunways.get(i);
+					if(currRunway.getRunwayName().equals(foundRunway)) {
+						Plane currPlane = waitingPlanes.get(i);
+						System.out.print("Enter new runway for plane " + currPlane.getFlightNumber() + ":");
+						boolean reAdded = false;
+						while(!reAdded) {
+							String newRunway = br.readLine();
+							System.out.println(newRunway);
+							Runway runObj = findBinarily(newRunway);
+							if(newRunway.equals(foundRunway)) {
+								System.out.println("This is the runway that is closing!");
+							}else if(runObj == null) {
+								System.out.println("No such runway!");
+							}else {
+								System.out.println("Flight " + currPlane.getFlightNumber() + " is now waiting for takeoff on runway "+ newRunway+".");
+								waitingRunways.get(i).setRunwayName(newRunway);
+								reAdded=true;
+							}
+						}
+					}
+
+				}
+				takeOffOrderedRunways.remove(foundRunwayObject.getRunwayNumber());
+
+				int index = findIndexBinarily(foundRunway);
+				nameOrderedRunways.remove(index);
+
+				boolean removedTakeOffOrdered = false;
+				int orderIterator = 0;
+				int takeOffSize = takeOffOrderedRunways.size();
+				while(!removedTakeOffOrdered && orderIterator < takeOffSize) {
+					if(takeOffOrderedRunways.get(orderIterator).getRunwayName().equals(foundRunway)) {
+						takeOffOrderedRunways.remove(orderIterator);
+						removedTakeOffOrdered = true;
+					}
+					orderIterator++;
+				}
+
+				System.out.println("Runway " + foundRunway + " has been closed.");
+				removing = false;
+			}
+
+		}
+	}
+	private static void displayReadyPlanes() {
+		int numRunways = takeOffOrderedRunways.size();
+		for(int i = 0; i < numRunways; i++) {
+			Runway currRunway = takeOffOrderedRunways.get(i);
+			ListArrayBasedPlus<Plane> flights = currRunway.getReadyFlights();
+			int numFlights = flights.size();
+			if(numFlights == 0) {
+				System.out.println("No planes are waiting for takeoff on runway " + currRunway.getRunwayName() + "!");
+			}else{
+				System.out.println("These planes are waiting for takeoff on runway " + currRunway.getRunwayName() + " : ");
+				for(int j = 0; j < numFlights; j++) {
+					System.out.println("Flight " + flights.get(j).getFlightNumber() + " to " + flights.get(j).getDestination() + ".");
+				}
+			}
+		}
+	}
+
+	private static void displayWaitingPlanes() {
+		int waitingSize = waitingPlanes.size();
+		if(waitingSize == 0) System.out.println("No planes are waiting to be cleared to re-enter a runway!");
+		else
+		{
+			System.out.println("These planes are waiting to be cleared to re-enter a runway:");
+			for(int z = 0; z < waitingSize; z++)
+			{
+				Plane currFlight = waitingPlanes.get(z);
+				System.out.println("Flight " + currFlight.getFlightNumber() + " to " + currFlight.getDestination());
+			}
+		}
+	}
 	//Insert a runway into the collection binarily
 	private static void insertBinarily(Runway r) throws AlreadyExistsException
 	{
@@ -297,14 +358,20 @@ public class Driver {
 				min = mid + 1;
 			}
 		}
-		int end = r.getRunwayName().compareTo(nameOrderedRunways.get(mid).getRunwayName());
-		if(end == 0) throw new AlreadyExistsException("Exception on adding into the runway.");
+		mid = max;
+		int end = -1;
+		if(nameOrderedRunways.size() > mid) {
+			end = r.getRunwayName().compareTo(nameOrderedRunways.get(mid).getRunwayName());
+		}
+		if(end == 0) {
+			throw new AlreadyExistsException("Exception on adding into the runway.");
+		}
 		else
 		{
 			nameOrderedRunways.add(mid, r);
 		}
 	}
-	
+
 	//Find a Runway based on its name, binarily
 	private static Runway findBinarily(String str)
 	{
@@ -324,17 +391,23 @@ public class Driver {
 				min = mid + 1;
 			}
 		}
-		int end = str.compareTo(nameOrderedRunways.get(mid).getRunwayName());
-		if(end == 0) returnRunway = nameOrderedRunways.get(mid);
+		mid = max;
+		int end = -1;
+		if(nameOrderedRunways.size() > mid) {
+			end = str.compareTo(nameOrderedRunways.get(mid).getRunwayName());
+		}
+		if(end == 0) {
+			returnRunway = nameOrderedRunways.get(mid);
+		}
 		return returnRunway;
 	}
-	
+
 	//Return the index of a runway in the name ordered collection by its name.
 	private static int findIndexBinarily(String str)
 	{
 		Runway returnRunway = null;
 		int min = 0;
-		int max = nameOrderedRunways.size(); 
+		int max = nameOrderedRunways.size() - 1; 
 		int mid = 0;
 		while(max - min != 0)
 		{
@@ -348,10 +421,11 @@ public class Driver {
 				min = mid + 1;
 			}
 		}
-		int end = str.compareTo(nameOrderedRunways.get(mid).getRunwayName());
-		return end;
+		mid = max;
+		//int end = str.compareTo(nameOrderedRunways.get(mid).getRunwayName());
+		return mid;
 	}
-	
+
 	//Find a plane binarily in the list of planes that are waiting. Index 0 of Object[] is the plane object itself, index 1 is the runway object (for printing purposes)
 	private static Object[] findPlaneBinarily(String flightNum)
 	{
@@ -371,6 +445,7 @@ public class Driver {
 				min = mid + 1;
 			}
 		}
+		mid = max;
 		int end = flightNum.compareTo(waitingPlanes.get(mid).getFlightNumber());
 		if(end == 0) 
 		{
@@ -381,12 +456,12 @@ public class Driver {
 		}
 		return returnArr;
 	}
-	
+
 	//Insert a plane and runway binarily into the waiting list
 	private static void insertBinarily(Plane p, Runway r) 
 	{
 		int min = 0;
-		int max = nameOrderedRunways.size(); 
+		int max = waitingPlanes.size(); 
 		int mid = 0;
 		while(max - min != 0)
 		{
@@ -400,10 +475,11 @@ public class Driver {
 				min = mid + 1;
 			}
 		}
+		mid = max;
 		waitingPlanes.add(mid, p);
 		waitingRunways.add(mid, r);
 	}
-	
-	
+
+
 
 }

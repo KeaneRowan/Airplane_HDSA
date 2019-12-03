@@ -15,6 +15,10 @@ public class Driver {
 	private static ListArrayBased<Plane> waitingPlanes = new ListArrayBasedPlus<>();
 	//Keep track of the next runway to take off
 	private static int nextTakeoffRunway = 0;
+	//Keep track of planes taken off and landed
+    private static ListArrayBasedPlus<Plane> takenOffPlanes = new ListArrayBasedPlus<>();
+    private static StringBuilder sb = new StringBuilder();
+
 	public static void main(String[] args) throws NumberFormatException, IOException 
 	{
 		System.out.println("Welcome to the Airport program!");
@@ -22,16 +26,18 @@ public class Driver {
 		//create the original runways
 		getInitRunways();
 
-		System.out.println("Select from the following menu:\r\n" + 
-				"  0. Exit program.\r\n" + 
-				"  1. Plane enters the system.\r\n" + 
-				"  2. Plane takes off.\r\n" + 
-				"  3. Plane is allowed to re-enter a runway.\r\n" + 
-				"  4. Runway opens.\r\n" + 
-				"  5. Runway closes.\r\n" + 
-				"  6. Display info about planes waiting to take off.\r\n" + 
-				"  7. Display info about planes waiting to be allowed to re-enter a runway.\r\n" + 
-				"  8. Display number of planes who have taken off.");
+		System.out.println("Select from the following menu:\r\n" +
+                "  0.  Exit program.\r\n" +
+                "  1.  Plane enters the system.\r\n" +
+                "  2.  Plane takes off.\r\n" +
+                "  3.  Plane is allowed to re-enter a runway.\r\n" +
+                "  4.  Runway opens.\r\n" +
+                "  5.  Runway closes.\r\n" +
+                "  6.  Display info about planes waiting to take off.\r\n" +
+                "  7.  Display info about planes waiting to be allowed to re-enter a runway.\r\n" +
+                "  8.  Display number of planes who have taken off.\r\n" +
+                "  9.  Land a plane.\r\n" +
+                "  10. Display info about planes landed");
 		boolean isDone = false;
 		while(!isDone)
 		{
@@ -65,9 +71,17 @@ public class Driver {
 			case 7: 
 				displayWaitingPlanes();
 				break;
-			case 8: 
+			case 8:
 				System.out.println(numTakeoffs + " planes have taken off from the airport.");
+				break;
+			case 9:
+				landPlane();
+				break;
+			case 10:
+				displayLandedPlanes();
+				break;
 			}
+
 			System.out.println();
 		}
 
@@ -153,6 +167,7 @@ public class Driver {
 			if(confirmation.equals("Y")) {
 				System.out.println("Flight " + plane.getFlightNumber() + " has now taken off from runway " + currRunway.getRunwayName());
 				numTakeoffs++;
+				takenOffPlanes.add(takenOffPlanes.size(), plane);
 			}else {
 				System.out.println("Flight " + plane.getFlightNumber() + " is now waiting to be allowed to re-enter a runway.");
 				insertBinarily(plane, currRunway);
@@ -340,6 +355,54 @@ public class Driver {
 			}
 		}
 	}
+
+	private static void landPlane() throws IOException{
+		if(takenOffPlanes.size() == 0) {
+			System.out.println("There are no planes that have taken off!");
+		}
+
+		else
+		{
+			boolean landing = true;
+			while(landing){
+				//Look for planes until you find the one in the list of waiting.
+				System.out.print("Enter flight number: ");
+				String flightNum = br.readLine();
+				System.out.println(flightNum);
+
+				int index = 0;
+				boolean found = false;
+				int size = takenOffPlanes.size();
+				for(;index < size && !found;){
+					if(flightNum.equals(takenOffPlanes.get(index).getFlightNumber())){
+						found = true;
+					}else{
+						index++;
+					}
+				}
+
+				if(index == size){
+					System.out.println("Flight " + flightNum + " has not yet taken off. Try again.");
+				}else{
+					String result = "Flight " + flightNum + " has landed in " + takenOffPlanes.get(index).getDestination() + "\n";
+					sb.append(result);
+					System.out.println(result);
+					takenOffPlanes.remove(index);
+					landing = false;
+				}
+			}
+		}
+	}
+
+	private static void displayLandedPlanes(){
+		if(sb.toString().equals("")){
+			System.out.println("No planes have landed yet.");
+		}else{
+			System.out.println("These are the planes that have landed: ");
+			System.out.println(sb.toString());
+		}
+	}
+
 	//Insert a runway into the collection binarily
 	private static void insertBinarily(Runway r) throws AlreadyExistsException
 	{
